@@ -1,16 +1,16 @@
 package request
 
 import (
-	"io"
-	"fmt"
 	"errors"
+	"fmt"
+	"io"
 	"strings"
 )
 
 type RequestLine struct {
-	Method string
+	Method        string
 	RequestTarget string
-	HttpVersion string
+	HttpVersion   string
 }
 
 func (r *RequestLine) ValidHTTP() bool {
@@ -21,12 +21,18 @@ type Request struct {
 	RequestLine RequestLine
 }
 
+type parseState string
+
+const (
+	StateInit parseState = "init"
+	StateDone parseState = "done"
+)
 
 var ERROR_MALFORMED_REQUEST_LINE = fmt.Errorf("malformed request-line")
 var ERROR_UNSUPPORTED_HTTP_VERSION = fmt.Errorf("unsupported http version")
 var SEPARATOR = "\r\n"
 
-func parseRequestLine(b string) (*RequestLine, string,  error) {
+func parseRequestLine(b string) (*RequestLine, string, error) {
 	idx := strings.Index(b, SEPARATOR)
 
 	if idx == -1 {
@@ -34,7 +40,7 @@ func parseRequestLine(b string) (*RequestLine, string,  error) {
 	}
 
 	startLine := b[:idx]
-	restOfMsg := b[idx + len(SEPARATOR):]
+	restOfMsg := b[idx+len(SEPARATOR):]
 
 	parts := strings.Split(startLine, " ")
 	if len(parts) != 3 {
@@ -46,22 +52,19 @@ func parseRequestLine(b string) (*RequestLine, string,  error) {
 		return nil, restOfMsg, ERROR_MALFORMED_REQUEST_LINE
 	}
 
-
-
-rl := &RequestLine{
-		Method: parts[0],
+	rl := &RequestLine{
+		Method:        parts[0],
 		RequestTarget: parts[1],
-		HttpVersion: httpParts[1],
+		HttpVersion:   httpParts[1],
 	}
 
 	return rl, restOfMsg, nil
 }
 
-
 func RequestFromReader(reader io.Reader) (*Request, error) {
 	data, err := io.ReadAll(reader)
 	if err != nil {
-return nil, errors.Join(
+		return nil, errors.Join(
 			fmt.Errorf("unable to io.ReadAll"),
 			err,
 		)
@@ -69,7 +72,7 @@ return nil, errors.Join(
 
 	str := string(data)
 
-rl, _, err := parseRequestLine(str)
+	rl, _, err := parseRequestLine(str)
 	if err != nil {
 		return nil, err
 	}
