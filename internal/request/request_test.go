@@ -33,7 +33,7 @@ func (cr *chunkReader) Read(p []byte) (n int, err error) {
 func TestRequestLineParse(t *testing.T) {
 	// Test: Good GET Request line
 	reader := &chunkReader{
-		data:            "GET / HTTP/1.1\r\nHost: localhost:42069\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n",
+		data:            "GET / HTTP/1.1\r\nHost: localhost:42069\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n  ",
 		numBytesPerRead: 3,
 	}
 	r, err := RequestFromReader(reader)
@@ -45,7 +45,7 @@ func TestRequestLineParse(t *testing.T) {
 
 	// Test: Good GET Request line with path
 	reader = &chunkReader{
-		data:            "GET /coffee HTTP/1.1\r\nHost: localhost:42069\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n",
+		data:            "GET /coffee HTTP/1.1\r\nHost: localhost:42069\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n  ",
 		numBytesPerRead: 1,
 	}
 	r, err = RequestFromReader(reader)
@@ -65,9 +65,12 @@ func TestParseHeaders(t *testing.T) {
 	r, err := RequestFromReader(reader)
 	require.NoError(t, err)
 	require.NotNil(t, r)
-	assert.Equal(t, "localhost:42069", r.Headers.Get("host"))
-	assert.Equal(t, "curl/7.81.0", r.Headers.Get("user-agent"))
-	assert.Equal(t, "*/*", r.Headers.Get("accept"))
+	host, _ := r.Headers.Get("host")
+	assert.Equal(t, "localhost:42069", host)
+	userAgent, _ := r.Headers.Get("user-agent")
+	assert.Equal(t, "curl/7.81.0", userAgent)
+	accept, _ := r.Headers.Get("accept")
+	assert.Equal(t, "*/*", accept)
 
 	// Test: Malformed Header
 	reader = &chunkReader{

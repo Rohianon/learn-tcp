@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strconv"
 
 	"boot.rohi.tv/internal/headers"
 )
@@ -13,6 +14,7 @@ type parserState string
 const (
 	StateInit    parserState = "init"
 	StateHeaders parserState = "headers"
+	StateBody    parserState = "body"
 	StateDone    parserState = "done"
 	StateError   parserState = "error"
 )
@@ -25,13 +27,30 @@ type RequestLine struct {
 
 type Request struct {
 	RequestLine RequestLine
-	Headers     headers.Headers
+	Headers     *headers.Headers
+	Body        string
 	state       parserState
+}
+
+func getInt(headers *headers.Headers, name string, defaultValue int) int {
+	valueStr, exists := headers.Get(name)
+	if !exists {
+		return defaultValue
+	}
+
+	value, err := strconv.Atoi(valueStr)
+	if err != nil {
+		return defaultValue
+	}
+
+	return value
 }
 
 func newRequest() *Request {
 	return &Request{
-		state: StateInit,
+		state:   StateInit,
+		Headers: headers.NewHeaders(),
+		Body:    "",
 	}
 }
 
@@ -99,6 +118,7 @@ outer:
 		case StateHeaders:
 			n, done, err := r.Headers.Parse(currentData)
 			if err != nil {
+				r.state = StateError
 				return 0, err
 			}
 
@@ -109,6 +129,26 @@ outer:
 			read += n
 
 			if done {
+				r.state = StateBody
+			}
+
+		case StateBody:
+			length := getInt(r.Headers, "content-length", 0)
+			if length == 0 {
+				r.state = StateDone
+				break
+			}
+
+			// If we still need body bytes but none are available, wait for more data
+			if len(currentData) == 0 {
+				break outer
+			}
+
+			remaining := min(length-len(r.Body), len(currentData))
+			r.Body += string(currentData[:remaining])
+			read += remaining
+
+			if len(r.Body) == length {
 				r.state = StateDone
 			}
 
@@ -130,8 +170,8 @@ func (r *Request) done() bool {
 func RequestFromReader(reader io.Reader) (*Request, error) {
 	request := newRequest()
 
-	// NOTE: buffer could get overrun.
-
+	// NOTE: buffer could get overrun... a header that exceeds 1k would do that..
+	// or the body
 	buf := make([]byte, 1024)
 	bufLen := 0
 
