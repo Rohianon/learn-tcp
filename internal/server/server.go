@@ -26,10 +26,9 @@ func runConnection(s *Server, conn io.ReadWriteCloser) {
 
 	defer conn.Close()
 
-	headers := response.GetDefaultHeaders(0)
-
 	r, err := request.RequestFromReader(conn)
 	if err != nil {
+		headers := response.GetDefaultHeaders(0)
 		response.WriteStatusLine(conn, response.StatusBadRequest)
 		response.WriteHeaders(conn, headers)
 		return
@@ -43,19 +42,16 @@ func runConnection(s *Server, conn io.ReadWriteCloser) {
 	if handlerError != nil {
 		status = handlerError.StatusCode
 		body = []byte(handlerError.Message)
-		conn.Write([]byte(handlerError.Message))
-		return
 	} else {
 		body = writer.Bytes()
 	}
 
-body = writer.Bytes()
-	headers.Set("Content-length", fmt.Sprintf("%d", len(body)))
+	headers := response.GetDefaultHeaders(len(body))
 
-	response.WriteStatusLine(conn, status)
-	response.WriteHeaders(conn, headers)
+response.WriteStatusLine(conn, status)
+response.WriteHeaders(conn, headers)
 
-	conn.Write(body)
+conn.Write(body)
 
 }
 

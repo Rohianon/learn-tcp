@@ -31,10 +31,9 @@ func WriteHeaders(w io.Writer, h *headers.Headers) error {
 	var err error = nil
 	b := []byte{}
 	h.ForEach(func(n, v string) {
-
-		b = fmt.Appendf(nil, "%s: %s\r\n", n, v)
+		b = fmt.Appendf(b, "%s: %s\r\n", n, v)
 	})
-	b = fmt.Append(b, "\r\n")
+	b = fmt.Appendf(b, "\r\n")
 	_, err = w.Write(b)
 
 	return err
@@ -45,13 +44,13 @@ func WriteStatusLine(w io.Writer, statusCode StatusCode) error {
 	statusLine := []byte{}
 	switch statusCode {
 	case StatusOK:
-		statusLine = []byte("HTTP/1.1 200 OK")
+		statusLine = []byte("HTTP/1.1 200 OK\r\n")
 
 	case StatusBadRequest:
-		statusLine = []byte("HTTP/1.1 400 Bad Request")
+		statusLine = []byte("HTTP/1.1 400 Bad Request\r\n")
 
 	case StatusInternalServerError:
-		statusLine = []byte("HTTP/1.1 500 Internal Server Error")
+		statusLine = []byte("HTTP/1.1 500 Internal Server Error\r\n")
 
 	default:
 		return fmt.Errorf("unrecognized error code")
