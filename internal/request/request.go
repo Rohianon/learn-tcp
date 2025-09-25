@@ -88,6 +88,12 @@ func parseRequestLine(b []byte) (*RequestLine, int, error) {
 	return rl, read, nil
 }
 
+func (r *Request) hasBody() bool {
+	// TODO: When doing chunked encoding, update this method
+	length := getInt(r.Headers, "content-length", 0)
+	return length > 0
+}
+
 func (r *Request) parse(data []byte) (int, error) {
 
 	read := 0
@@ -128,15 +134,22 @@ outer:
 
 			read += n
 
+			// Really... I don't like this and this is why
+			// In the real world, we would not get an EOF after reading data
+			// therefore we would nicely transition to body, which would
+			// allow us to then transition to done, but i am doing the transition here
 			if done {
-				r.state = StateBody
+				if r.hasBody() {
+					r.state = StateBody
+				} else {
+					r.state = StateDone
+				}
 			}
 
 		case StateBody:
 			length := getInt(r.Headers, "content-length", 0)
 			if length == 0 {
-				r.state = StateDone
-				break
+				panic("chunked not implemented")
 			}
 
 			// If we still need body bytes but none are available, wait for more data
