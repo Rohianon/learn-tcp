@@ -15,22 +15,22 @@ import (
 const port = 42069
 
 func main() {
-server, err := server.Serve(port, func(w io.Writer, req *request.Request) *server.HandlerError {
+	server, err := server.Serve(port, func(w io.Writer, req *request.Request) *server.HandlerError {
 		if req.RequestLine.RequestTarget == "/yourproblem" {
 			return &server.HandlerError{
 				StatusCode: response.StatusBadRequest,
 				Message:    "Your problem is not my problem\n",
 			}
 		} else if req.RequestLine.RequestTarget == "/myproblem" {
-				return &server.HandlerError{
-					StatusCode: response.StatusInternalServerError,
-					Message:    "Woopsie, my bad\n",
-				}
+			return &server.HandlerError{
+				StatusCode: response.StatusInternalServerError,
+				Message:    "Woopsie, my bad\n",
+			}
 		} else {
 			// Return empty response for default route
 		}
-			return nil
-		})
+		return nil
+	})
 
 	if err != nil {
 		log.Fatalf("Error starting server: %v", err)
